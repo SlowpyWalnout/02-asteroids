@@ -17,6 +17,18 @@ function pressed(code) {
   return val;
 }
 
+const CONTROL_CODES = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'Space'];
+
+window.addEventListener('keydown', (e) => {
+  if (CONTROL_CODES.includes(e.code)) e.preventDefault();
+  if (!keys[e.code]) justPressed[e.code] = true;
+  keys[e.code] = true;
+});
+
+window.addEventListener('keyup', (e) => {
+  keys[e.code] = false;
+});
+
 // ── Utils ─────────────────────────────────────────────────────────────────────
 const wrap  = (v, max) => ((v % max) + max) % max;
 const dist  = (a, b)   => Math.hypot(a.x - b.x, a.y - b.y);
