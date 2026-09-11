@@ -317,7 +317,7 @@ let ship, bullets, asteroids, particles, powerups;
 let score, lives, level;
 let state;      // 'playing' | 'dead' | 'gameover'
 let deadTimer;
-let powerupSpawned; // true tras soltar el power-up una vez (solo puede pasar 1 vez por partida)
+let powerupDroppedThisLevel; // true si ya cayó un power-up en el nivel actual
 
 function spawnAsteroids(count) {
   const SAFE_DIST = 130;
@@ -341,7 +341,7 @@ function initGame() {
   lives  = 3;
   level  = 1;
   state  = 'playing';
-  powerupSpawned = false;
+  powerupDroppedThisLevel = false;
   spawnAsteroids(4);
 }
 
@@ -349,7 +349,7 @@ function nextLevel() {
   level++;
   bullets   = [];
   particles = [];
-  powerups  = [];
+  powerupDroppedThisLevel = false;
   ship.reset();
   spawnAsteroids(3 + level);
 }
@@ -405,6 +405,7 @@ function update(dt) {
 
   // Bala vs asteroide
   const newAsteroids = [];
+  let lastKill = null;
   for (const b of bullets) {
     for (const a of asteroids) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
@@ -413,15 +414,23 @@ function update(dt) {
         score += POINTS[a.size];
         explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
-        if (!powerupSpawned && Math.random() < DROP_CHANCE) {
+        lastKill = { x: a.x, y: a.y };
+        if (Math.random() < DROP_CHANCE) {
           powerups.push(new PowerUp(a.x, a.y));
-          powerupSpawned = true;
+          powerupDroppedThisLevel = true;
         }
       }
     }
   }
   asteroids = asteroids.filter(a => !a.dead).concat(newAsteroids);
   bullets   = bullets.filter(b => !b.dead);
+
+  // Garantía: al menos un power-up por nivel. Se dispara cuando quedan pocos
+  // asteroides, para que dé tiempo a recogerlo antes de cambiar de nivel.
+  if (lastKill && !powerupDroppedThisLevel && asteroids.length <= 2) {
+    powerups.push(new PowerUp(lastKill.x, lastKill.y));
+    powerupDroppedThisLevel = true;
+  }
 
   // Nave vs power-up
   for (const p of powerups) {
